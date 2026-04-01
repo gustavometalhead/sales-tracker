@@ -1,0 +1,964 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>TE@M · Sales Tracker</title>
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+<style>
+:root{--bg:#080c10;--surface:#0e1418;--card:#131a20;--border:#1e2a33;--accent:#00e5ff;--accent2:#ff3d71;--mid:#a8ff3e;--entry:#ff9500;--gold:#ffd000;--text:#e8f0f5;--muted:#4a6070;}
+*{margin:0;padding:0;box-sizing:border-box;}
+body{background:var(--bg);color:var(--text);font-family:'Syne',sans-serif;min-height:100vh;overflow-x:hidden;}
+body::before{content:'';position:fixed;inset:0;background-image:linear-gradient(rgba(0,229,255,.03) 1px,transparent 1px),linear-gradient(90deg,rgba(0,229,255,.03) 1px,transparent 1px);background-size:40px 40px;pointer-events:none;z-index:0;}
+.container{position:relative;z-index:1;max-width:900px;margin:0 auto;padding:24px 16px 60px;}
+
+/* ── TABS ── */
+.tabs{display:flex;gap:4px;margin-bottom:24px;background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:4px;}
+.tab{flex:1;padding:9px 12px;border-radius:9px;border:none;background:transparent;color:var(--muted);font-family:'Syne',sans-serif;font-size:13px;font-weight:700;cursor:pointer;transition:all .2s;text-transform:uppercase;letter-spacing:.5px;}
+.tab.active{background:var(--card);color:var(--text);border:1px solid var(--border);}
+.tab:hover:not(.active){color:var(--text);}
+.view{display:none;}
+.view.active{display:block;}
+
+/* ── SHARED ── */
+.section-title{font-size:11px;text-transform:uppercase;letter-spacing:2px;color:var(--muted);font-family:'JetBrains Mono',monospace;margin-bottom:14px;}
+header{display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:28px;gap:16px;}
+.header-left h1{font-size:clamp(22px,5vw,32px);font-weight:800;letter-spacing:-.5px;line-height:1;}
+.header-left h1 span{color:var(--accent);}
+.header-meta{font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--muted);margin-top:6px;text-transform:uppercase;letter-spacing:1px;}
+.tienda-badge{background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:10px 14px;text-align:right;font-size:11px;color:var(--muted);font-family:'JetBrains Mono',monospace;white-space:nowrap;}
+.tienda-badge strong{display:block;color:var(--accent);font-size:13px;margin-bottom:2px;}
+
+/* ── CONFIG VIEW ── */
+.cfg-section{background:var(--card);border:1px solid var(--border);border-radius:14px;padding:20px;margin-bottom:16px;}
+.cfg-section h3{font-size:14px;font-weight:700;margin-bottom:16px;display:flex;align-items:center;gap:8px;}
+.cfg-section h3 span{font-size:11px;color:var(--muted);font-family:'JetBrains Mono',monospace;font-weight:400;text-transform:uppercase;letter-spacing:1px;}
+.cfg-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:12px;}
+.cfg-field{display:flex;flex-direction:column;gap:5px;}
+.cfg-label{font-size:11px;color:var(--muted);font-family:'JetBrains Mono',monospace;text-transform:uppercase;letter-spacing:1px;}
+.cfg-input{background:var(--surface);border:1px solid var(--border);border-radius:8px;color:var(--text);font-family:'JetBrains Mono',monospace;font-size:15px;font-weight:700;padding:9px 12px;outline:none;width:100%;transition:border-color .2s;}
+.cfg-input:focus{border-color:var(--accent);}
+.cfg-input.high:focus{border-color:var(--accent);}
+.cfg-input.mid-c:focus{border-color:var(--mid);}
+.cfg-input.entry-c:focus{border-color:var(--entry);}
+.cfg-row{display:grid;grid-template-columns:1fr 1fr;gap:10px;}
+.cfg-sub{font-size:10px;color:var(--muted);font-family:'JetBrains Mono',monospace;margin-top:2px;}
+
+/* bonus config row */
+.bonus-cfg-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:12px;}
+.bonus-cfg-item{background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:14px;}
+.bonus-cfg-name{font-size:12px;font-weight:700;margin-bottom:4px;}
+.bonus-cfg-fields{display:grid;grid-template-columns:1fr 1fr;gap:8px;}
+
+.save-btn{background:var(--accent);color:#000;border:none;border-radius:10px;padding:12px 28px;font-family:'Syne',sans-serif;font-size:14px;font-weight:800;cursor:pointer;transition:all .2s;letter-spacing:.5px;}
+.save-btn:hover{background:#00c4da;transform:translateY(-1px);}
+.save-btn:active{transform:translateY(0);}
+.save-confirm{display:none;font-family:'JetBrains Mono',monospace;font-size:12px;color:var(--mid);margin-left:14px;align-items:center;gap:5px;}
+.save-confirm.show{display:inline-flex;}
+
+.add-bonus-btn{background:transparent;border:1px dashed var(--border);color:var(--muted);border-radius:10px;padding:10px;font-family:'JetBrains Mono',monospace;font-size:12px;cursor:pointer;transition:all .2s;width:100%;margin-top:10px;}
+.add-bonus-btn:hover{border-color:var(--accent);color:var(--accent);}
+.remove-bonus-btn{background:transparent;border:none;color:var(--muted);cursor:pointer;font-size:16px;transition:color .2s;padding:0;align-self:flex-end;margin-bottom:2px;}
+.remove-bonus-btn:hover{color:var(--accent2);}
+
+/* mes selector */
+.mes-selector{display:grid;grid-template-columns:1fr 1fr;gap:10px;}
+.month-picker{background:var(--surface);border:1px solid var(--border);border-radius:8px;color:var(--text);font-family:'JetBrains Mono',monospace;font-size:14px;padding:9px 12px;outline:none;width:100%;cursor:pointer;}
+.month-picker:focus{border-color:var(--accent);}
+option{background:var(--surface);}
+
+/* ── CALENDARIO DE DÍAS LIBRES ── */
+.cal-wrapper{margin-top:4px;}
+.cal-legend{display:flex;gap:14px;margin-bottom:12px;flex-wrap:wrap;}
+.cal-legend-item{display:flex;align-items:center;gap:6px;font-family:'JetBrains Mono',monospace;font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;}
+.legend-dot{width:10px;height:10px;border-radius:3px;}
+.legend-dot.work{background:var(--surface);border:1px solid var(--border);}
+.legend-dot.off{background:rgba(255,61,113,.25);border:1px solid rgba(255,61,113,.5);}
+.legend-dot.today{background:rgba(0,229,255,.2);border:1px solid var(--accent);}
+.cal-grid-header{display:grid;grid-template-columns:repeat(7,1fr);gap:3px;margin-bottom:3px;}
+.cal-dow{text-align:center;font-family:'JetBrains Mono',monospace;font-size:9px;color:var(--muted);text-transform:uppercase;padding:4px 0;}
+.cal-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:3px;}
+.cal-day{aspect-ratio:1;display:flex;align-items:center;justify-content:center;border-radius:6px;font-family:'JetBrains Mono',monospace;font-size:12px;font-weight:700;cursor:pointer;border:1px solid var(--border);background:var(--surface);color:var(--text);transition:all .15s;user-select:none;}
+.cal-day:hover{border-color:var(--muted);}
+.cal-day.empty{background:transparent;border-color:transparent;cursor:default;}
+.cal-day.off{background:rgba(255,61,113,.15);border-color:rgba(255,61,113,.4);color:var(--accent2);}
+.cal-day.off:hover{background:rgba(255,61,113,.25);}
+.cal-day.today-mark{border-color:var(--accent);box-shadow:0 0 0 1px rgba(0,229,255,.3);}
+.cal-day.past{opacity:.55;}
+.cal-summary{margin-top:10px;font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--muted);display:flex;gap:16px;flex-wrap:wrap;}
+.cal-summary b{color:var(--text);}
+.cal-summary .highlight{color:var(--accent);}
+
+/* ── TRACKER VIEW ── */
+.dias-card{background:var(--card);border:1px solid var(--border);border-radius:14px;padding:18px 20px;margin-bottom:16px;}
+.dias-info{display:flex;gap:20px;flex-wrap:wrap;align-items:center;}
+.dias-item{display:flex;flex-direction:column;gap:2px;}
+.dias-val{font-family:'JetBrains Mono',monospace;font-size:28px;font-weight:800;color:var(--accent);}
+.dias-label{font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:1px;font-family:'JetBrains Mono',monospace;}
+.dias-divider{width:1px;height:44px;background:var(--border);}
+.ritmo-card{flex:1;background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:12px 14px;min-width:160px;}
+.ritmo-label{font-size:10px;text-transform:uppercase;letter-spacing:1.5px;color:var(--muted);font-family:'JetBrains Mono',monospace;margin-bottom:4px;}
+.ritmo-val{font-family:'JetBrains Mono',monospace;font-size:12px;font-weight:700;}
+.ritmo-val.ok{color:var(--mid);}
+.ritmo-val.warn{color:var(--gold);}
+.ritmo-val.bad{color:var(--accent2);}
+.total-card{background:var(--card);border:1px solid var(--border);border-radius:16px;padding:22px;margin-bottom:16px;position:relative;overflow:hidden;}
+.total-card::before{content:'';position:absolute;top:-40px;right:-40px;width:180px;height:180px;background:radial-gradient(circle,rgba(0,229,255,.07) 0%,transparent 70%);pointer-events:none;}
+.total-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;flex-wrap:wrap;gap:10px;}
+.total-label{font-size:11px;text-transform:uppercase;letter-spacing:2px;color:var(--muted);font-family:'JetBrains Mono',monospace;}
+.total-numbers{display:flex;align-items:baseline;gap:8px;}
+.total-current{font-size:52px;font-weight:800;line-height:1;color:var(--accent);font-family:'JetBrains Mono',monospace;}
+.total-target{font-size:22px;color:var(--muted);font-family:'JetBrains Mono',monospace;}
+.pct-badge{font-family:'JetBrains Mono',monospace;font-size:13px;font-weight:700;padding:5px 12px;border-radius:6px;background:rgba(0,229,255,.1);color:var(--accent);border:1px solid rgba(0,229,255,.2);}
+.pct-badge.green{background:rgba(168,255,62,.1);color:var(--mid);border-color:rgba(168,255,62,.2);}
+.pct-badge.gold{background:rgba(255,208,0,.1);color:var(--gold);border-color:rgba(255,208,0,.2);}
+.pct-badge.red{background:rgba(255,61,113,.1);color:var(--accent2);border-color:rgba(255,61,113,.2);}
+.progress-bar-wrap{background:var(--border);border-radius:999px;height:8px;overflow:hidden;margin-top:2px;}
+.progress-bar-fill{height:100%;border-radius:999px;transition:width .7s cubic-bezier(.4,0,.2,1);background:linear-gradient(90deg,var(--accent),#00b4cc);}
+.milestones{display:flex;gap:8px;flex-wrap:wrap;margin-top:12px;}
+.milestone{font-family:'JetBrains Mono',monospace;font-size:10px;padding:3px 9px;border-radius:5px;border:1px dashed var(--border);color:var(--muted);transition:all .3s;}
+.milestone.reached{background:rgba(168,255,62,.08);border-color:var(--mid);color:var(--mid);border-style:solid;}
+.incentivo-row{display:flex;gap:8px;margin-top:14px;flex-wrap:wrap;}
+.inc-chip{font-family:'JetBrains Mono',monospace;font-size:11px;padding:5px 10px;border-radius:6px;background:rgba(255,208,0,.07);border:1px solid rgba(255,208,0,.15);color:var(--gold);}
+.inc-chip span{color:var(--text);opacity:.5;margin-right:4px;}
+.reset-btn{background:transparent;border:1px solid var(--border);color:var(--muted);padding:7px 16px;border-radius:8px;cursor:pointer;font-family:'JetBrains Mono',monospace;font-size:11px;text-transform:uppercase;letter-spacing:1px;transition:all .2s;}
+.reset-btn:hover{border-color:var(--accent2);color:var(--accent2);}
+.gamma-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(250px,1fr));gap:14px;margin-bottom:16px;}
+.gamma-card{background:var(--card);border:1px solid var(--border);border-radius:14px;padding:18px;transition:border-color .2s;}
+.gamma-card:hover{border-color:var(--muted);}
+.gamma-top{display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;}
+.gamma-name{font-weight:700;font-size:12px;text-transform:uppercase;letter-spacing:1.5px;}
+.gamma-name.high{color:var(--accent);}
+.gamma-name.mid{color:var(--mid);}
+.gamma-name.entry{color:var(--entry);}
+.gamma-incentivo{font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--gold);background:rgba(255,208,0,.07);border:1px solid rgba(255,208,0,.12);padding:3px 8px;border-radius:5px;}
+.gamma-progress-nums{display:flex;align-items:baseline;gap:5px;margin-bottom:9px;}
+.gp-current{font-size:36px;font-weight:800;font-family:'JetBrains Mono',monospace;line-height:1;}
+.gp-current.high{color:var(--accent);}
+.gp-current.mid{color:var(--mid);}
+.gp-current.entry{color:var(--entry);}
+.gp-target{font-size:16px;color:var(--muted);font-family:'JetBrains Mono',monospace;}
+.gp-pct{margin-left:auto;font-family:'JetBrains Mono',monospace;font-size:12px;font-weight:700;}
+.gp-pct.high{color:var(--accent);}
+.gp-pct.mid{color:var(--mid);}
+.gp-pct.entry{color:var(--entry);}
+.gamma-bar-wrap{background:var(--border);border-radius:999px;height:6px;overflow:hidden;margin-bottom:12px;}
+.gamma-bar-fill{height:100%;border-radius:999px;transition:width .7s cubic-bezier(.4,0,.2,1);}
+.gamma-bar-fill.high{background:linear-gradient(90deg,var(--accent),#00b4cc);}
+.gamma-bar-fill.mid{background:linear-gradient(90deg,var(--mid),#78cc00);}
+.gamma-bar-fill.entry{background:linear-gradient(90deg,var(--entry),#cc6e00);}
+.gamma-controls{display:flex;align-items:center;gap:8px;}
+.ctrl-btn{width:36px;height:36px;border-radius:8px;border:1px solid var(--border);background:var(--surface);color:var(--text);font-size:20px;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:all .15s;font-family:'JetBrains Mono',monospace;line-height:1;user-select:none;}
+.ctrl-btn:hover{background:var(--border);}
+.ctrl-btn.plus:hover{background:rgba(168,255,62,.1);border-color:var(--mid);color:var(--mid);}
+.ctrl-btn.minus:hover{background:rgba(255,61,113,.1);border-color:var(--accent2);color:var(--accent2);}
+.ctrl-input{flex:1;min-width:0;text-align:center;background:var(--surface);border:1px solid var(--border);border-radius:8px;color:var(--text);font-family:'JetBrains Mono',monospace;font-size:18px;font-weight:700;padding:6px;outline:none;}
+.ctrl-input:focus{border-color:var(--accent);}
+.gamma-products{margin-top:10px;display:flex;flex-wrap:wrap;gap:4px;}
+.prod-tag{font-family:'JetBrains Mono',monospace;font-size:10px;padding:2px 6px;border-radius:4px;background:var(--surface);border:1px solid var(--border);color:var(--muted);}
+.bonus-section{background:var(--card);border:1px solid var(--border);border-radius:14px;padding:18px 20px;margin-bottom:16px;}
+.bonus-tracker-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px;}
+.bonus-item{background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:12px;min-width:0;overflow:hidden;}
+.bonus-product{font-size:13px;font-weight:700;margin-bottom:3px;}
+.bonus-rate{font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--gold);margin-bottom:10px;}
+.bonus-controls{display:flex;align-items:center;gap:7px;width:100%;}
+.bonus-total-row{display:flex;align-items:center;justify-content:space-between;padding:11px 14px;background:rgba(255,208,0,.04);border:1px solid rgba(255,208,0,.14);border-radius:8px;margin-top:14px;}
+.bonus-total-label{font-size:11px;color:var(--muted);font-family:'JetBrains Mono',monospace;text-transform:uppercase;letter-spacing:1px;}
+.bonus-total-val{font-family:'JetBrains Mono',monospace;font-size:20px;font-weight:700;color:var(--gold);}
+.resumen-card{background:var(--card);border:1px solid var(--border);border-radius:14px;padding:18px 20px;margin-bottom:16px;}
+.resumen-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:10px;}
+.res-item{padding:14px;background:var(--surface);border:1px solid var(--border);border-radius:10px;text-align:center;}
+.res-label{font-size:10px;text-transform:uppercase;letter-spacing:1.5px;color:var(--muted);font-family:'JetBrains Mono',monospace;margin-bottom:5px;}
+.res-val{font-size:22px;font-weight:800;font-family:'JetBrains Mono',monospace;}
+.res-val.blue{color:var(--accent);}
+.res-val.gold{color:var(--gold);}
+.res-val.green{color:var(--mid);}
+.rules-card{background:rgba(255,61,113,.04);border:1px solid rgba(255,61,113,.15);border-radius:14px;padding:14px 18px;margin-bottom:16px;}
+.rules-title{font-size:11px;text-transform:uppercase;letter-spacing:2px;color:var(--accent2);font-family:'JetBrains Mono',monospace;margin-bottom:10px;}
+.rules-list{list-style:none;display:flex;flex-direction:column;gap:5px;}
+.rules-list li{font-size:11px;color:var(--muted);padding-left:14px;position:relative;line-height:1.5;}
+.rules-list li::before{content:'▸';position:absolute;left:0;color:var(--accent2);font-size:9px;top:2px;}
+@media(max-width:500px){.total-current{font-size:38px;}.gamma-grid{grid-template-columns:1fr;}.dias-divider{display:none;}.cfg-row{grid-template-columns:1fr;}.mes-selector{grid-template-columns:1fr;}.bonus-tracker-grid{grid-template-columns:1fr;}}
+</style>
+</head>
+<body>
+<div class="container">
+
+  <header>
+    <div class="header-left">
+      <h1>TE<span>@</span>M<br>Sales Tracker</h1>
+      <div class="header-meta" id="header-meta-text">BO HONOR · Cargando…</div>
+    </div>
+    <div class="tienda-badge" id="tienda-badge-box">
+      <strong id="badge-zona">—</strong>
+      <span id="badge-tienda">—</span><br>
+      <span style="color:var(--accent);font-size:10px;" id="badge-codigo">—</span>
+    </div>
+  </header>
+
+  <!-- TABS -->
+  <div class="tabs">
+    <button class="tab active" onclick="switchTab('tracker')">📊 Tracker</button>
+    <button class="tab" onclick="switchTab('config')">⚙️ Configurar mes</button>
+  </div>
+
+  <!-- ═══════════════ TRACKER VIEW ═══════════════ -->
+  <div class="view active" id="view-tracker">
+
+    <!-- Días -->
+    <div class="dias-card">
+      <div class="section-title">Progreso del mes · Días laborables</div>
+      <div class="dias-info">
+        <div class="dias-item">
+          <div class="dias-val" id="dias-pasados">—</div>
+          <div class="dias-label">Días trab. pasados</div>
+        </div>
+        <div class="dias-divider"></div>
+        <div class="dias-item">
+          <div class="dias-val" id="dias-restantes">—</div>
+          <div class="dias-label">Días trab. restantes</div>
+        </div>
+        <div class="dias-divider"></div>
+        <div class="dias-item">
+          <div class="dias-val" id="pct-mes">—</div>
+          <div class="dias-label">% jornadas</div>
+        </div>
+        <div class="ritmo-card">
+          <div class="ritmo-label">Ritmo proyectado</div>
+          <div class="ritmo-val" id="ritmo-text">Calculando…</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Total -->
+    <div class="total-card">
+      <div class="total-header">
+        <div>
+          <div class="total-label" id="total-label-text">Total SO Mes · Objetivo: — uds</div>
+          <div class="total-numbers">
+            <div class="total-current" id="total-current">0</div>
+            <div class="total-target" id="total-target-display">/ —</div>
+          </div>
+        </div>
+        <div style="display:flex;flex-direction:column;align-items:flex-end;gap:8px;">
+          <div class="pct-badge" id="total-pct-badge">0%</div>
+          <button class="reset-btn" onclick="resetSales()">↺ Reset ventas</button>
+        </div>
+      </div>
+      <div class="progress-bar-wrap"><div class="progress-bar-fill" id="total-bar" style="width:0%"></div></div>
+      <div class="milestones" id="milestones-row">
+        <div class="milestone" data-pct="80">80% — mín incentivo</div>
+        <div class="milestone" data-pct="100">100% — objetivo</div>
+        <div class="milestone" data-pct="120">120% — lineal</div>
+        <div class="milestone" data-pct="140">140% — máximo</div>
+      </div>
+      <div class="incentivo-row" id="incentivo-row"></div>
+    </div>
+
+    <!-- Gammas -->
+    <div class="gamma-grid">
+      <div class="gamma-card">
+        <div class="gamma-top">
+          <div class="gamma-name high">▲ HIGH · Gama Alta</div>
+          <div class="gamma-incentivo" id="lbl-inc-high">€— → 140%</div>
+        </div>
+        <div class="gamma-progress-nums">
+          <div class="gp-current high" id="val-high">0</div>
+          <div class="gp-target" id="lbl-tgt-high">/ —</div>
+          <div class="gp-pct high" id="pct-high">0%</div>
+        </div>
+        <div class="gamma-bar-wrap"><div class="gamma-bar-fill high" id="bar-high" style="width:0%"></div></div>
+        <div class="gamma-controls">
+          <button class="ctrl-btn minus" onclick="updateGamma('high',-1)">−</button>
+          <input class="ctrl-input" id="input-high" type="number" min="0" value="0" oninput="setGamma('high',this.value)">
+          <button class="ctrl-btn plus" onclick="updateGamma('high',1)">+</button>
+        </div>
+        <div class="gamma-products" id="prods-high"></div>
+      </div>
+
+      <div class="gamma-card">
+        <div class="gamma-top">
+          <div class="gamma-name mid">◆ MID · Gama Media</div>
+          <div class="gamma-incentivo" id="lbl-inc-mid">€— → 140%</div>
+        </div>
+        <div class="gamma-progress-nums">
+          <div class="gp-current mid" id="val-mid">0</div>
+          <div class="gp-target" id="lbl-tgt-mid">/ —</div>
+          <div class="gp-pct mid" id="pct-mid">0%</div>
+        </div>
+        <div class="gamma-bar-wrap"><div class="gamma-bar-fill mid" id="bar-mid" style="width:0%"></div></div>
+        <div class="gamma-controls">
+          <button class="ctrl-btn minus" onclick="updateGamma('mid',-1)">−</button>
+          <input class="ctrl-input" id="input-mid" type="number" min="0" value="0" oninput="setGamma('mid',this.value)">
+          <button class="ctrl-btn plus" onclick="updateGamma('mid',1)">+</button>
+        </div>
+        <div class="gamma-products" id="prods-mid"></div>
+      </div>
+
+      <div class="gamma-card">
+        <div class="gamma-top">
+          <div class="gamma-name entry">● ENTRY · Gama Entrada</div>
+          <div class="gamma-incentivo" id="lbl-inc-entry">€— → 140%</div>
+        </div>
+        <div class="gamma-progress-nums">
+          <div class="gp-current entry" id="val-entry">0</div>
+          <div class="gp-target" id="lbl-tgt-entry">/ —</div>
+          <div class="gp-pct entry" id="pct-entry">0%</div>
+        </div>
+        <div class="gamma-bar-wrap"><div class="gamma-bar-fill entry" id="bar-entry" style="width:0%"></div></div>
+        <div class="gamma-controls">
+          <button class="ctrl-btn minus" onclick="updateGamma('entry',-1)">−</button>
+          <input class="ctrl-input" id="input-entry" type="number" min="0" value="0" oninput="setGamma('entry',this.value)">
+          <button class="ctrl-btn plus" onclick="updateGamma('entry',1)">+</button>
+        </div>
+        <div class="gamma-products" id="prods-entry"></div>
+      </div>
+    </div>
+
+    <!-- Bonus tracker (dinámico) -->
+    <div class="bonus-section" id="bonus-section-tracker">
+      <div class="section-title">Bonus unitarios</div>
+      <div class="bonus-tracker-grid" id="bonus-tracker-grid"></div>
+      <div class="bonus-total-row">
+        <div class="bonus-total-label">Total bonus unitarios</div>
+        <div class="bonus-total-val" id="bonus-total-val">€0</div>
+      </div>
+    </div>
+
+    <!-- Resumen -->
+    <div class="resumen-card">
+      <div class="section-title">Resumen incentivos estimados</div>
+      <div class="resumen-grid">
+        <div class="res-item"><div class="res-label">Incentivo HIGH</div><div class="res-val blue" id="res-high">€0</div></div>
+        <div class="res-item"><div class="res-label">Incentivo MID</div><div class="res-val green" id="res-mid">€0</div></div>
+        <div class="res-item"><div class="res-label">Incentivo ENTRY</div><div class="res-val" style="color:var(--entry)" id="res-entry">€0</div></div>
+        <div class="res-item"><div class="res-label">Bonus unitario</div><div class="res-val gold" id="res-bonus">€0</div></div>
+        <div class="res-item" style="background:rgba(255,208,0,.05);border-color:rgba(255,208,0,.2);">
+          <div class="res-label">TOTAL ESTIMADO</div>
+          <div class="res-val gold" id="res-total">€0</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Reglas -->
+    <div class="rules-card">
+      <div class="rules-title">⚠ Reglas clave — penalizaciones</div>
+      <ul class="rules-list">
+        <li>Reportar EN TIEMPO Y FORMA cada día — penalización <strong style="color:var(--accent2)">-€20/día</strong> sin reporte + Warning letter desde 3 ausencias</li>
+        <li>Reportar desde la tienda al finalizar jornada con datos reales de ventas del día</li>
+        <li>No añadir unidades ni modelos distintos a los vendidos ese día</li>
+        <li>Incidencias → email proactivo al supervisor con foto/vídeo + explicación</li>
+        <li>Sin incentivo si no reportas diariamente, faltas graves o abandonas antes de fin de campaña</li>
+      </ul>
+    </div>
+
+  </div><!-- /view-tracker -->
+
+  <!-- ═══════════════ CONFIG VIEW ═══════════════ -->
+  <div class="view" id="view-config">
+
+    <!-- Datos de tienda -->
+    <div class="cfg-section">
+      <h3>Tienda &amp; Período <span>Datos generales</span></h3>
+      <div class="cfg-grid">
+        <div class="cfg-field">
+          <div class="cfg-label">Zona / Territorio</div>
+          <input class="cfg-input" id="cfg-zona" type="text" placeholder="Ej: NORTE">
+        </div>
+        <div class="cfg-field">
+          <div class="cfg-label">Nombre tienda</div>
+          <input class="cfg-input" id="cfg-tienda" type="text" placeholder="Ej: Media Markt Oviedo">
+        </div>
+        <div class="cfg-field">
+          <div class="cfg-label">Código tienda</div>
+          <input class="cfg-input" id="cfg-codigo" type="text" placeholder="Ej: E3280000">
+        </div>
+        <div class="cfg-field">
+          <div class="cfg-label">Campaña / Programa</div>
+          <input class="cfg-input" id="cfg-campanya" type="text" placeholder="Ej: BO HONOR">
+        </div>
+      </div>
+      <div style="margin-top:14px;">
+        <div class="cfg-label" style="margin-bottom:8px;">Período de campaña</div>
+        <div class="mes-selector">
+          <div class="cfg-field">
+            <div class="cfg-label">Mes</div>
+            <select class="month-picker" id="cfg-mes" onchange="renderCalendar()">
+              <option value="0">Enero</option><option value="1">Febrero</option>
+              <option value="2" selected>Marzo</option><option value="3">Abril</option>
+              <option value="4">Mayo</option><option value="5">Junio</option>
+              <option value="6">Julio</option><option value="7">Agosto</option>
+              <option value="8">Septiembre</option><option value="9">Octubre</option>
+              <option value="10">Noviembre</option><option value="11">Diciembre</option>
+            </select>
+          </div>
+          <div class="cfg-field">
+            <div class="cfg-label">Año</div>
+            <input class="cfg-input" id="cfg-anyo" type="number" value="2026" min="2024" max="2099" oninput="renderCalendar()">
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── CALENDARIO DÍAS LIBRES ── -->
+    <div class="cfg-section">
+      <h3>Días NO laborables <span>Toca para marcar/desmarcar</span></h3>
+      <div class="cal-wrapper">
+        <div class="cal-legend">
+          <div class="cal-legend-item"><div class="legend-dot work"></div>Día de trabajo</div>
+          <div class="cal-legend-item"><div class="legend-dot off"></div>Día libre / festivo</div>
+          <div class="cal-legend-item"><div class="legend-dot today"></div>Hoy</div>
+        </div>
+        <div class="cal-grid-header">
+          <div class="cal-dow">Lun</div>
+          <div class="cal-dow">Mar</div>
+          <div class="cal-dow">Mié</div>
+          <div class="cal-dow">Jue</div>
+          <div class="cal-dow">Vie</div>
+          <div class="cal-dow">Sáb</div>
+          <div class="cal-dow">Dom</div>
+        </div>
+        <div class="cal-grid" id="cal-grid"></div>
+        <div class="cal-summary" id="cal-summary"></div>
+      </div>
+    </div>
+
+    <!-- Objetivos por gama -->
+    <div class="cfg-section">
+      <h3>Objetivos por gama <span>Unidades mensuales</span></h3>
+
+      <!-- HIGH -->
+      <div style="margin-bottom:18px;">
+        <div style="font-size:12px;font-weight:700;color:var(--accent);text-transform:uppercase;letter-spacing:1px;margin-bottom:10px;">▲ HIGH</div>
+        <div class="cfg-grid">
+          <div class="cfg-field">
+            <div class="cfg-label">Objetivo (uds)</div>
+            <input class="cfg-input high" id="cfg-tgt-high" type="number" min="0" value="2">
+          </div>
+          <div class="cfg-field">
+            <div class="cfg-label">Incentivo base (€)</div>
+            <input class="cfg-input high" id="cfg-inc-high" type="number" min="0" value="200">
+          </div>
+          <div class="cfg-field" style="grid-column:1/-1">
+            <div class="cfg-label">Productos (separados por coma)</div>
+            <input class="cfg-input high" id="cfg-prods-high" type="text" placeholder="V5, 8 Pro, 400 Pro, Pad 9" value="V5, 8 Pro, 400 Pro, Pad 9">
+          </div>
+        </div>
+      </div>
+
+      <!-- MID -->
+      <div style="margin-bottom:18px;padding-top:14px;border-top:1px solid var(--border);">
+        <div style="font-size:12px;font-weight:700;color:var(--mid);text-transform:uppercase;letter-spacing:1px;margin-bottom:10px;">◆ MID</div>
+        <div class="cfg-grid">
+          <div class="cfg-field">
+            <div class="cfg-label">Objetivo (uds)</div>
+            <input class="cfg-input mid-c" id="cfg-tgt-mid" type="number" min="0" value="30">
+          </div>
+          <div class="cfg-field">
+            <div class="cfg-label">Incentivo base (€)</div>
+            <input class="cfg-input mid-c" id="cfg-inc-mid" type="number" min="0" value="500">
+          </div>
+          <div class="cfg-field" style="grid-column:1/-1">
+            <div class="cfg-label">Productos</div>
+            <input class="cfg-input mid-c" id="cfg-prods-mid" type="text" placeholder="Pad 2, 400, 8 Lite, Pad 10" value="Pad 2, 400, 8 Lite, Pad 10">
+          </div>
+        </div>
+      </div>
+
+      <!-- ENTRY -->
+      <div style="padding-top:14px;border-top:1px solid var(--border);">
+        <div style="font-size:12px;font-weight:700;color:var(--entry);text-transform:uppercase;letter-spacing:1px;margin-bottom:10px;">● ENTRY</div>
+        <div class="cfg-grid">
+          <div class="cfg-field">
+            <div class="cfg-label">Objetivo (uds)</div>
+            <input class="cfg-input entry-c" id="cfg-tgt-entry" type="number" min="0" value="60">
+          </div>
+          <div class="cfg-field">
+            <div class="cfg-label">Incentivo base (€)</div>
+            <input class="cfg-input entry-c" id="cfg-inc-entry" type="number" min="0" value="300">
+          </div>
+          <div class="cfg-field" style="grid-column:1/-1">
+            <div class="cfg-label">Productos</div>
+            <input class="cfg-input entry-c" id="cfg-prods-entry" type="text" placeholder="400 Lite, Pad X9a, 400 Smart..." value="400 Lite, Pad X9a, 400 Smart, Pad X8s, X5cPlus">
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Bonus unitarios -->
+    <div class="cfg-section">
+      <h3>Bonus unitarios <span>Por producto específico</span></h3>
+      <div class="bonus-cfg-grid" id="bonus-cfg-grid"></div>
+      <button class="add-bonus-btn" onclick="addBonusItem()">+ Añadir producto con bonus</button>
+    </div>
+
+    <!-- Guardar -->
+    <div style="display:flex;align-items:center;flex-wrap:wrap;gap:10px;">
+      <button class="save-btn" onclick="saveConfig()">Guardar configuración →</button>
+      <span class="save-confirm" id="save-confirm">✓ Guardado</span>
+    </div>
+    <p style="font-size:11px;color:var(--muted);font-family:'JetBrains Mono',monospace;margin-top:10px;">Los datos se guardan en tu navegador. Al guardar, el tracker se actualizará con los nuevos objetivos.</p>
+
+  </div><!-- /view-config -->
+
+</div>
+
+<script>
+// ── DEFAULT CONFIG ──
+const DEFAULT_CONFIG = {
+  zona: 'NORTE', tienda: 'Media Markt Oviedo (Siero)', codigo: 'E3280000', campanya: 'BO HONOR',
+  mes: 2, anyo: 2026,
+  tgtHigh: 2, incHigh: 200, prodsHigh: 'V5, 8 Pro, 400 Pro, Pad 9',
+  tgtMid: 30, incMid: 500, prodsMid: 'Pad 2, 400, 8 Lite, Pad 10',
+  tgtEntry: 60, incEntry: 300, prodsEntry: '400 Lite, Pad X9a, 400 Smart, Pad X8s, X5cPlus',
+  bonusItems: [
+    { name: 'M8 Lite', rate: 10 },
+    { name: 'H400', rate: 10 },
+    { name: 'M8 Pro', rate: 30 }
+  ],
+  diasLibres: [] // array de strings "YYYY-MM-DD"
+};
+
+const MONTH_NAMES = ['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
+
+let cfg = {};
+let salesState = { high: 0, mid: 0, entry: 0 };
+let bonusSales = {};
+
+// ── PERSIST ──
+function saveAll() {
+  try { localStorage.setItem('teamTrackerCfg', JSON.stringify(cfg)); } catch(e){}
+  try { localStorage.setItem('teamTrackerSales', JSON.stringify(salesState)); } catch(e){}
+  try { localStorage.setItem('teamTrackerBonus', JSON.stringify(bonusSales)); } catch(e){}
+}
+
+function loadAll() {
+  try {
+    const c = JSON.parse(localStorage.getItem('teamTrackerCfg'));
+    cfg = c ? { ...DEFAULT_CONFIG, ...c } : { ...DEFAULT_CONFIG };
+    if (!cfg.diasLibres) cfg.diasLibres = [];
+  } catch(e) { cfg = { ...DEFAULT_CONFIG }; }
+
+  try {
+    const s = JSON.parse(localStorage.getItem('teamTrackerSales'));
+    if (s) salesState = { ...salesState, ...s };
+  } catch(e) {}
+
+  try {
+    const b = JSON.parse(localStorage.getItem('teamTrackerBonus'));
+    if (b) bonusSales = b;
+  } catch(e) {}
+}
+
+// ── HELPERS DE DÍAS ──
+// Devuelve el key "YYYY-MM-DD" para un Date
+function dateKey(d) {
+  const y = d.getFullYear();
+  const m = String(d.getMonth()+1).padStart(2,'0');
+  const day = String(d.getDate()).padStart(2,'0');
+  return `${y}-${m}-${day}`;
+}
+
+// Devuelve set de diasLibres del mes actual de cfg
+function getLibresSet() {
+  return new Set(cfg.diasLibres || []);
+}
+
+// Calcula días laborables totales y pasados del mes configurado
+function calcDiasLaborables() {
+  const mes = cfg.mes ?? 2;
+  const anyo = cfg.anyo ?? 2026;
+  const totalDias = new Date(anyo, mes + 1, 0).getDate();
+  const libres = getLibresSet();
+  const now = new Date();
+  // Inicio del día de hoy (sin horas)
+  const hoy = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+
+  let totalLaborables = 0;
+  let laborablesPasados = 0; // días laborables que YA han pasado (incluyendo hoy)
+
+  for (let d = 1; d <= totalDias; d++) {
+    const fecha = new Date(anyo, mes, d);
+    const key = dateKey(fecha);
+    if (!libres.has(key)) {
+      totalLaborables++;
+      // Contar como pasado si la fecha es <= hoy
+      if (fecha <= hoy) {
+        laborablesPasados++;
+      }
+    }
+  }
+
+  const laborablesRestantes = totalLaborables - laborablesPasados;
+  const pctLaborable = totalLaborables > 0 ? laborablesPasados / totalLaborables : 0;
+
+  return { totalLaborables, laborablesPasados, laborablesRestantes, pctLaborable };
+}
+
+// ── TABS ──
+function switchTab(tab) {
+  document.querySelectorAll('.tab').forEach((t,i) => t.classList.toggle('active', (i===0 && tab==='tracker')||(i===1 && tab==='config')));
+  document.getElementById('view-tracker').classList.toggle('active', tab==='tracker');
+  document.getElementById('view-config').classList.toggle('active', tab==='config');
+  if (tab === 'config') { populateConfigForm(); renderCalendar(); }
+}
+
+// ── CALENDARIO ──
+function renderCalendar() {
+  const mes = parseInt(document.getElementById('cfg-mes').value);
+  const anyo = parseInt(document.getElementById('cfg-anyo').value) || 2026;
+  const totalDias = new Date(anyo, mes + 1, 0).getDate();
+
+  // día de la semana del 1 del mes (lunes=0)
+  let primerDia = new Date(anyo, mes, 1).getDay(); // 0=dom
+  primerDia = (primerDia + 6) % 7; // convertir a lunes=0
+
+  const libres = new Set(cfg.diasLibres || []);
+  const now = new Date();
+  const hoyKey = dateKey(new Date(now.getFullYear(), now.getMonth(), now.getDate()));
+
+  const grid = document.getElementById('cal-grid');
+  grid.innerHTML = '';
+
+  // celdas vacías al inicio
+  for (let i = 0; i < primerDia; i++) {
+    const empty = document.createElement('div');
+    empty.className = 'cal-day empty';
+    grid.appendChild(empty);
+  }
+
+  for (let d = 1; d <= totalDias; d++) {
+    const fecha = new Date(anyo, mes, d);
+    const key = dateKey(fecha);
+    const btn = document.createElement('div');
+    btn.className = 'cal-day';
+    btn.textContent = d;
+    if (libres.has(key)) btn.classList.add('off');
+    if (key === hoyKey) btn.classList.add('today-mark');
+    // marcar días pasados
+    const hoy = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+    if (fecha < hoy && !libres.has(key)) btn.classList.add('past');
+    btn.addEventListener('click', () => toggleDiaLibre(key, btn));
+    grid.appendChild(btn);
+  }
+
+  updateCalSummary(mes, anyo, libres, totalDias);
+}
+
+function toggleDiaLibre(key, btn) {
+  if (!cfg.diasLibres) cfg.diasLibres = [];
+  const idx = cfg.diasLibres.indexOf(key);
+  if (idx === -1) {
+    cfg.diasLibres.push(key);
+    btn.classList.add('off');
+    btn.classList.remove('past');
+  } else {
+    cfg.diasLibres.splice(idx, 1);
+    btn.classList.remove('off');
+  }
+  const mes = parseInt(document.getElementById('cfg-mes').value);
+  const anyo = parseInt(document.getElementById('cfg-anyo').value) || 2026;
+  const totalDias = new Date(anyo, mes + 1, 0).getDate();
+  updateCalSummary(mes, anyo, new Set(cfg.diasLibres), totalDias);
+}
+
+function updateCalSummary(mes, anyo, libres, totalDias) {
+  // contar libres de este mes
+  let libresDelMes = 0;
+  for (let d = 1; d <= totalDias; d++) {
+    const key = dateKey(new Date(anyo, mes, d));
+    if (libres.has(key)) libresDelMes++;
+  }
+  const laborables = totalDias - libresDelMes;
+  const summary = document.getElementById('cal-summary');
+  summary.innerHTML = `<span>Días del mes: <b>${totalDias}</b></span><span>Días libres: <b>${libresDelMes}</b></span><span>Días laborables: <b class="highlight">${laborables}</b></span>`;
+}
+
+// ── CONFIG FORM ──
+function populateConfigForm() {
+  document.getElementById('cfg-zona').value = cfg.zona || '';
+  document.getElementById('cfg-tienda').value = cfg.tienda || '';
+  document.getElementById('cfg-codigo').value = cfg.codigo || '';
+  document.getElementById('cfg-campanya').value = cfg.campanya || '';
+  document.getElementById('cfg-mes').value = cfg.mes ?? 2;
+  document.getElementById('cfg-anyo').value = cfg.anyo || 2026;
+  document.getElementById('cfg-tgt-high').value = cfg.tgtHigh ?? 2;
+  document.getElementById('cfg-inc-high').value = cfg.incHigh ?? 200;
+  document.getElementById('cfg-prods-high').value = cfg.prodsHigh || '';
+  document.getElementById('cfg-tgt-mid').value = cfg.tgtMid ?? 30;
+  document.getElementById('cfg-inc-mid').value = cfg.incMid ?? 500;
+  document.getElementById('cfg-prods-mid').value = cfg.prodsMid || '';
+  document.getElementById('cfg-tgt-entry').value = cfg.tgtEntry ?? 60;
+  document.getElementById('cfg-inc-entry').value = cfg.incEntry ?? 300;
+  document.getElementById('cfg-prods-entry').value = cfg.prodsEntry || '';
+  renderBonusCfg();
+}
+
+function renderBonusCfg() {
+  const grid = document.getElementById('bonus-cfg-grid');
+  grid.innerHTML = '';
+  (cfg.bonusItems || []).forEach((item, idx) => {
+    const div = document.createElement('div');
+    div.className = 'bonus-cfg-item';
+    div.innerHTML = `
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">
+        <div class="bonus-cfg-name">Producto ${idx+1}</div>
+        <button class="remove-bonus-btn" onclick="removeBonus(${idx})">✕</button>
+      </div>
+      <div class="bonus-cfg-fields">
+        <div class="cfg-field">
+          <div class="cfg-label">Nombre</div>
+          <input class="cfg-input" style="font-size:13px;padding:7px 10px;" type="text" value="${item.name}" oninput="updateBonusCfg(${idx},'name',this.value)">
+        </div>
+        <div class="cfg-field">
+          <div class="cfg-label">€/unidad</div>
+          <input class="cfg-input" style="font-size:13px;padding:7px 10px;" type="number" min="0" value="${item.rate}" oninput="updateBonusCfg(${idx},'rate',parseFloat(this.value)||0)">
+        </div>
+      </div>`;
+    grid.appendChild(div);
+  });
+}
+
+function updateBonusCfg(idx, field, val) {
+  cfg.bonusItems[idx][field] = val;
+}
+
+function addBonusItem() {
+  cfg.bonusItems = cfg.bonusItems || [];
+  cfg.bonusItems.push({ name: '', rate: 0 });
+  renderBonusCfg();
+}
+
+function removeBonus(idx) {
+  cfg.bonusItems.splice(idx, 1);
+  const newSales = {};
+  Object.keys(bonusSales).forEach(k => {
+    const n = parseInt(k);
+    if (n < idx) newSales[n] = bonusSales[k];
+    else if (n > idx) newSales[n-1] = bonusSales[k];
+  });
+  bonusSales = newSales;
+  renderBonusCfg();
+}
+
+function saveConfig() {
+  cfg.zona = document.getElementById('cfg-zona').value.trim() || 'ZONA';
+  cfg.tienda = document.getElementById('cfg-tienda').value.trim() || 'Tienda';
+  cfg.codigo = document.getElementById('cfg-codigo').value.trim();
+  cfg.campanya = document.getElementById('cfg-campanya').value.trim() || 'Campaña';
+  cfg.mes = parseInt(document.getElementById('cfg-mes').value);
+  cfg.anyo = parseInt(document.getElementById('cfg-anyo').value) || 2026;
+  cfg.tgtHigh = parseInt(document.getElementById('cfg-tgt-high').value) || 0;
+  cfg.incHigh = parseFloat(document.getElementById('cfg-inc-high').value) || 0;
+  cfg.prodsHigh = document.getElementById('cfg-prods-high').value.trim();
+  cfg.tgtMid = parseInt(document.getElementById('cfg-tgt-mid').value) || 0;
+  cfg.incMid = parseFloat(document.getElementById('cfg-inc-mid').value) || 0;
+  cfg.prodsMid = document.getElementById('cfg-prods-mid').value.trim();
+  cfg.tgtEntry = parseInt(document.getElementById('cfg-tgt-entry').value) || 0;
+  cfg.incEntry = parseFloat(document.getElementById('cfg-inc-entry').value) || 0;
+  cfg.prodsEntry = document.getElementById('cfg-prods-entry').value.trim();
+  // diasLibres ya se guardan al hacer click en el calendario
+
+  saveAll();
+  applyConfigToTracker();
+
+  const c = document.getElementById('save-confirm');
+  c.classList.add('show');
+  setTimeout(() => c.classList.remove('show'), 2000);
+  setTimeout(() => switchTab('tracker'), 600);
+}
+
+// ── APPLY CONFIG → TRACKER ──
+function applyConfigToTracker() {
+  const mesNombre = MONTH_NAMES[cfg.mes] || '';
+  const diasMes = new Date(cfg.anyo, cfg.mes + 1, 0).getDate();
+
+  document.getElementById('header-meta-text').textContent = `${cfg.campanya} · ${mesNombre.toUpperCase()} ${cfg.anyo} · 01–${diasMes} ${mesNombre.toUpperCase().slice(0,3)}`;
+  document.getElementById('badge-zona').textContent = cfg.zona;
+  document.getElementById('badge-tienda').textContent = cfg.tienda;
+  document.getElementById('badge-codigo').textContent = cfg.codigo;
+
+  const totalTarget = (cfg.tgtHigh||0) + (cfg.tgtMid||0) + (cfg.tgtEntry||0);
+  document.getElementById('total-label-text').textContent = `Total SO Mes · Objetivo: ${totalTarget} uds`;
+  document.getElementById('total-target-display').textContent = `/ ${totalTarget}`;
+
+  document.getElementById('lbl-inc-high').textContent = `€${cfg.incHigh} → 140%`;
+  document.getElementById('lbl-inc-mid').textContent = `€${cfg.incMid} → 140%`;
+  document.getElementById('lbl-inc-entry').textContent = `€${cfg.incEntry} → 140%`;
+
+  document.getElementById('lbl-tgt-high').textContent = `/ ${cfg.tgtHigh}`;
+  document.getElementById('lbl-tgt-mid').textContent = `/ ${cfg.tgtMid}`;
+  document.getElementById('lbl-tgt-entry').textContent = `/ ${cfg.tgtEntry}`;
+
+  ['high','mid','entry'].forEach(g => {
+    const key = 'prods' + g.charAt(0).toUpperCase() + g.slice(1);
+    const raw = cfg[key] || '';
+    const el = document.getElementById('prods-' + g);
+    el.innerHTML = raw.split(',').map(p => p.trim()).filter(Boolean).map(p => `<span class="prod-tag">${p}</span>`).join('');
+  });
+
+  // Bonus tracker grid
+  const grid = document.getElementById('bonus-tracker-grid');
+  grid.innerHTML = '';
+  (cfg.bonusItems || []).forEach((item, idx) => {
+    if (!bonusSales[idx]) bonusSales[idx] = 0;
+    const div = document.createElement('div');
+    div.className = 'bonus-item';
+    div.innerHTML = `
+      <div class="bonus-product">${item.name || 'Producto'}</div>
+      <div class="bonus-rate">+€${item.rate} / unidad</div>
+      <div class="bonus-controls">
+        <button class="ctrl-btn minus" onclick="updateBonus(${idx},-1)">−</button>
+        <input class="ctrl-input" id="bonus-input-${idx}" type="number" min="0" value="${bonusSales[idx]||0}" oninput="setBonusVal(${idx},this.value)" style="font-size:15px;">
+        <button class="ctrl-btn plus" onclick="updateBonus(${idx},1)">+</button>
+      </div>`;
+    grid.appendChild(div);
+  });
+
+  render();
+}
+
+// ── SALES CONTROLS ──
+function updateGamma(g, delta) {
+  salesState[g] = Math.max(0, salesState[g] + delta);
+  document.getElementById('input-' + g).value = salesState[g];
+  saveAll(); render();
+}
+function setGamma(g, v) {
+  salesState[g] = Math.max(0, parseInt(v)||0);
+  saveAll(); render();
+}
+function updateBonus(idx, delta) {
+  bonusSales[idx] = Math.max(0, (bonusSales[idx]||0) + delta);
+  const el = document.getElementById('bonus-input-' + idx);
+  if (el) el.value = bonusSales[idx];
+  saveAll(); render();
+}
+function setBonusVal(idx, v) {
+  bonusSales[idx] = Math.max(0, parseInt(v)||0);
+  saveAll(); render();
+}
+function resetSales() {
+  if (!confirm('¿Resetear todas las ventas?')) return;
+  salesState = { high: 0, mid: 0, entry: 0 };
+  bonusSales = {};
+  ['high','mid','entry'].forEach(g => {
+    document.getElementById('input-' + g).value = 0;
+  });
+  (cfg.bonusItems||[]).forEach((_,idx) => {
+    const el = document.getElementById('bonus-input-' + idx);
+    if (el) el.value = 0;
+  });
+  saveAll(); render();
+}
+
+// ── RENDER ──
+function pctColor(pct, el) {
+  el.className = el.className.replace(/\b(green|gold|red)\b/g,'').trim();
+  if (pct >= 1.2) el.classList.add('gold');
+  else if (pct >= 0.8) el.classList.add('green');
+  else if (pct > 0) el.classList.add('red');
+}
+function fmtPct(pct) { return Math.round(pct*100) + '%'; }
+
+function calcIncentivo(base, units, target) {
+  if (!target) return 0;
+  const pct = units / target;
+  if (pct < 0.8) return 0;
+  return Math.round(base * Math.min(pct, 1.4));
+}
+
+function render() {
+  const tH = cfg.tgtHigh||0, tM = cfg.tgtMid||0, tE = cfg.tgtEntry||0;
+  const totalTarget = tH + tM + tE;
+  const total = salesState.high + salesState.mid + salesState.entry;
+  const totalPct = totalTarget > 0 ? total / totalTarget : 0;
+
+  document.getElementById('total-current').textContent = total;
+  document.getElementById('total-bar').style.width = Math.min(totalPct*100, 100) + '%';
+  const tb = document.getElementById('total-pct-badge');
+  tb.textContent = fmtPct(totalPct);
+  pctColor(totalPct, tb);
+
+  [['high',tH],['mid',tM],['entry',tE]].forEach(([g,t]) => {
+    const v = salesState[g], p = t > 0 ? v/t : 0;
+    document.getElementById('val-' + g).textContent = v;
+    document.getElementById('pct-' + g).textContent = fmtPct(p);
+    document.getElementById('bar-' + g).style.width = Math.min(p*100,100) + '%';
+  });
+
+  document.querySelectorAll('.milestone').forEach(el => {
+    el.classList.toggle('reached', totalPct >= parseFloat(el.dataset.pct)/100);
+  });
+
+  const iH = calcIncentivo(cfg.incHigh||0, salesState.high, tH);
+  const iM = calcIncentivo(cfg.incMid||0, salesState.mid, tM);
+  const iE = calcIncentivo(cfg.incEntry||0, salesState.entry, tE);
+  const bonusTotal = (cfg.bonusItems||[]).reduce((sum, item, idx) => sum + (bonusSales[idx]||0)*item.rate, 0);
+  const grand = iH + iM + iE + bonusTotal;
+
+  document.getElementById('res-high').textContent = '€'+iH;
+  document.getElementById('res-mid').textContent = '€'+iM;
+  document.getElementById('res-entry').textContent = '€'+iE;
+  document.getElementById('res-bonus').textContent = '€'+bonusTotal;
+  document.getElementById('res-total').textContent = '€'+grand;
+  document.getElementById('bonus-total-val').textContent = '€'+bonusTotal;
+
+  const row = document.getElementById('incentivo-row');
+  row.innerHTML = '';
+  [{l:'HIGH',v:iH},{l:'MID',v:iM},{l:'ENTRY',v:iE},{l:'BONUS UNIT.',v:bonusTotal},{l:'TOTAL',v:grand}]
+    .filter(c => c.v > 0 || c.l==='TOTAL')
+    .forEach(c => { row.innerHTML += `<div class="inc-chip"><span>${c.l}</span>€${c.v}</div>`; });
+
+  updateDias();
+}
+
+function updateDias() {
+  const { totalLaborables, laborablesPasados, laborablesRestantes, pctLaborable } = calcDiasLaborables();
+
+  document.getElementById('dias-pasados').textContent = laborablesPasados;
+  document.getElementById('dias-restantes').textContent = laborablesRestantes;
+  document.getElementById('pct-mes').textContent = Math.round(pctLaborable * 100) + '%';
+
+  const total = salesState.high + salesState.mid + salesState.entry;
+  const totalTarget = (cfg.tgtHigh||0) + (cfg.tgtMid||0) + (cfg.tgtEntry||0);
+  const ritmoEl = document.getElementById('ritmo-text');
+
+  if (laborablesPasados === 0) {
+    ritmoEl.textContent = 'Mes no iniciado';
+    ritmoEl.className = 'ritmo-val';
+    return;
+  }
+  if (totalLaborables === 0) {
+    ritmoEl.textContent = 'Sin días laborables configurados';
+    ritmoEl.className = 'ritmo-val';
+    return;
+  }
+
+  // Proyección basada en ritmo actual × días laborables totales
+  const proyectado = Math.round((total / laborablesPasados) * totalLaborables);
+  const pctProyectado = totalTarget > 0 ? proyectado / totalTarget : 0;
+
+  // Cuántas ventas deberías llevar a este ritmo (proporcional a días laborables pasados)
+  const expectedNow = Math.round(totalTarget * pctLaborable);
+  const diff = total - expectedNow;
+  const diffStr = diff >= 0 ? '+'+diff : ''+diff;
+
+  let cls = pctProyectado >= 1.2 ? 'ok' : pctProyectado >= 0.8 ? 'warn' : 'bad';
+  ritmoEl.textContent = `Proyección: ${proyectado} uds (${Math.round(pctProyectado*100)}%) · ${diffStr} vs ritmo esperado`;
+  ritmoEl.className = 'ritmo-val ' + cls;
+}
+
+// ── INIT ──
+loadAll();
+
+['high','mid','entry'].forEach(g => {
+  const el = document.getElementById('input-' + g);
+  if (el) el.value = salesState[g] || 0;
+});
+
+applyConfigToTracker();
+setInterval(updateDias, 60000);
+</script>
+</body>
+</html>
