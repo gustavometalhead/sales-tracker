@@ -437,11 +437,16 @@ option{background:var(--surface);}
           </div>
           <div class="cfg-field">
             <div class="cfg-label">Incentivo base (€)</div>
-            <input class="cfg-input high" id="cfg-inc-high" type="number" min="0" value="200">
+            <input class="cfg-input high" id="cfg-inc-high" type="number" min="0" value="0">
+          </div>
+          <div class="cfg-field">
+            <div class="cfg-label">% Máximo pago</div>
+            <input class="cfg-input high" id="cfg-max-high" type="number" min="80" max="300" value="140">
+            <div class="cfg-sub">Ej: 120 → paga hasta el 120%</div>
           </div>
           <div class="cfg-field" style="grid-column:1/-1">
             <div class="cfg-label">Productos (separados por coma)</div>
-            <input class="cfg-input high" id="cfg-prods-high" type="text" placeholder="V5, 8 Pro, 400 Pro, Pad 9" value="V5, 8 Pro, 400 Pro, Pad 9">
+            <input class="cfg-input high" id="cfg-prods-high" type="text" placeholder="V5, 8 Pro, 400 Pro, Pad 9">
           </div>
         </div>
       </div>
@@ -456,11 +461,16 @@ option{background:var(--surface);}
           </div>
           <div class="cfg-field">
             <div class="cfg-label">Incentivo base (€)</div>
-            <input class="cfg-input mid-c" id="cfg-inc-mid" type="number" min="0" value="500">
+            <input class="cfg-input mid-c" id="cfg-inc-mid" type="number" min="0" value="0">
+          </div>
+          <div class="cfg-field">
+            <div class="cfg-label">% Máximo pago</div>
+            <input class="cfg-input mid-c" id="cfg-max-mid" type="number" min="80" max="300" value="140">
+            <div class="cfg-sub">Ej: 140 → paga hasta el 140%</div>
           </div>
           <div class="cfg-field" style="grid-column:1/-1">
             <div class="cfg-label">Productos</div>
-            <input class="cfg-input mid-c" id="cfg-prods-mid" type="text" placeholder="Pad 2, 400, 8 Lite, Pad 10" value="Pad 2, 400, 8 Lite, Pad 10">
+            <input class="cfg-input mid-c" id="cfg-prods-mid" type="text" placeholder="Pad 2, 400, 8 Lite, Pad 10">
           </div>
         </div>
       </div>
@@ -475,11 +485,16 @@ option{background:var(--surface);}
           </div>
           <div class="cfg-field">
             <div class="cfg-label">Incentivo base (€)</div>
-            <input class="cfg-input entry-c" id="cfg-inc-entry" type="number" min="0" value="300">
+            <input class="cfg-input entry-c" id="cfg-inc-entry" type="number" min="0" value="0">
+          </div>
+          <div class="cfg-field">
+            <div class="cfg-label">% Máximo pago</div>
+            <input class="cfg-input entry-c" id="cfg-max-entry" type="number" min="80" max="300" value="140">
+            <div class="cfg-sub">Ej: 140 → paga hasta el 140%</div>
           </div>
           <div class="cfg-field" style="grid-column:1/-1">
             <div class="cfg-label">Productos</div>
-            <input class="cfg-input entry-c" id="cfg-prods-entry" type="text" placeholder="400 Lite, Pad X9a, 400 Smart..." value="400 Lite, Pad X9a, 400 Smart, Pad X8s, X5cPlus">
+            <input class="cfg-input entry-c" id="cfg-prods-entry" type="text" placeholder="400 Lite, Pad X9a, 400 Smart...">
           </div>
         </div>
       </div>
@@ -509,9 +524,9 @@ option{background:var(--surface);}
 const DEFAULT_CONFIG = {
   zona: '', tienda: '', codigo: '', campanya: '',
   mes: new Date().getMonth(), anyo: new Date().getFullYear(),
-  tgtHigh: 0, incHigh: 0, prodsHigh: '',
-  tgtMid: 0, incMid: 0, prodsMid: '',
-  tgtEntry: 0, incEntry: 0, prodsEntry: '',
+  tgtHigh: 0, incHigh: 0, maxHigh: 140, prodsHigh: '',
+  tgtMid: 0, incMid: 0, maxMid: 140, prodsMid: '',
+  tgtEntry: 0, incEntry: 0, maxEntry: 140, prodsEntry: '',
   bonusItems: [],
   diasLibres: []
 };
@@ -679,14 +694,17 @@ function populateConfigForm() {
   document.getElementById('cfg-campanya').value = cfg.campanya || '';
   document.getElementById('cfg-mes').value = cfg.mes ?? 2;
   document.getElementById('cfg-anyo').value = cfg.anyo || 2026;
-  document.getElementById('cfg-tgt-high').value = cfg.tgtHigh ?? 2;
-  document.getElementById('cfg-inc-high').value = cfg.incHigh ?? 200;
+  document.getElementById('cfg-tgt-high').value = cfg.tgtHigh ?? 0;
+  document.getElementById('cfg-inc-high').value = cfg.incHigh ?? 0;
+  document.getElementById('cfg-max-high').value = cfg.maxHigh ?? 140;
   document.getElementById('cfg-prods-high').value = cfg.prodsHigh || '';
-  document.getElementById('cfg-tgt-mid').value = cfg.tgtMid ?? 30;
-  document.getElementById('cfg-inc-mid').value = cfg.incMid ?? 500;
+  document.getElementById('cfg-tgt-mid').value = cfg.tgtMid ?? 0;
+  document.getElementById('cfg-inc-mid').value = cfg.incMid ?? 0;
+  document.getElementById('cfg-max-mid').value = cfg.maxMid ?? 140;
   document.getElementById('cfg-prods-mid').value = cfg.prodsMid || '';
-  document.getElementById('cfg-tgt-entry').value = cfg.tgtEntry ?? 60;
-  document.getElementById('cfg-inc-entry').value = cfg.incEntry ?? 300;
+  document.getElementById('cfg-tgt-entry').value = cfg.tgtEntry ?? 0;
+  document.getElementById('cfg-inc-entry').value = cfg.incEntry ?? 0;
+  document.getElementById('cfg-max-entry').value = cfg.maxEntry ?? 140;
   document.getElementById('cfg-prods-entry').value = cfg.prodsEntry || '';
   renderBonusCfg();
 }
@@ -747,12 +765,15 @@ function saveConfig() {
   cfg.anyo = parseInt(document.getElementById('cfg-anyo').value) || 2026;
   cfg.tgtHigh = parseInt(document.getElementById('cfg-tgt-high').value) || 0;
   cfg.incHigh = parseFloat(document.getElementById('cfg-inc-high').value) || 0;
+  cfg.maxHigh = parseInt(document.getElementById('cfg-max-high').value) || 140;
   cfg.prodsHigh = document.getElementById('cfg-prods-high').value.trim();
   cfg.tgtMid = parseInt(document.getElementById('cfg-tgt-mid').value) || 0;
   cfg.incMid = parseFloat(document.getElementById('cfg-inc-mid').value) || 0;
+  cfg.maxMid = parseInt(document.getElementById('cfg-max-mid').value) || 140;
   cfg.prodsMid = document.getElementById('cfg-prods-mid').value.trim();
   cfg.tgtEntry = parseInt(document.getElementById('cfg-tgt-entry').value) || 0;
   cfg.incEntry = parseFloat(document.getElementById('cfg-inc-entry').value) || 0;
+  cfg.maxEntry = parseInt(document.getElementById('cfg-max-entry').value) || 140;
   cfg.prodsEntry = document.getElementById('cfg-prods-entry').value.trim();
   // diasLibres ya se guardan al hacer click en el calendario
 
@@ -779,13 +800,19 @@ function applyConfigToTracker() {
   document.getElementById('total-label-text').textContent = `Total SO Mes · Objetivo: ${totalTarget} uds`;
   document.getElementById('total-target-display').textContent = `/ ${totalTarget}`;
 
-  document.getElementById('lbl-inc-high').textContent = `€${cfg.incHigh} → 140%`;
-  document.getElementById('lbl-inc-mid').textContent = `€${cfg.incMid} → 140%`;
-  document.getElementById('lbl-inc-entry').textContent = `€${cfg.incEntry} → 140%`;
+  document.getElementById('lbl-inc-high').textContent = `€${cfg.incHigh} → ${cfg.maxHigh||140}%`;
+  document.getElementById('lbl-inc-mid').textContent = `€${cfg.incMid} → ${cfg.maxMid||140}%`;
+  document.getElementById('lbl-inc-entry').textContent = `€${cfg.incEntry} → ${cfg.maxEntry||140}%`;
 
   document.getElementById('lbl-tgt-high').textContent = `/ ${cfg.tgtHigh}`;
   document.getElementById('lbl-tgt-mid').textContent = `/ ${cfg.tgtMid}`;
   document.getElementById('lbl-tgt-entry').textContent = `/ ${cfg.tgtEntry}`;
+
+  // Update max milestone labels to reflect configured caps per gamma
+  // (show the most permissive cap across gammas as the global max milestone)
+  const maxCap = Math.max(cfg.maxHigh||140, cfg.maxMid||140, cfg.maxEntry||140);
+  const maxMilEl = document.querySelector('.milestone[data-pct="140"]');
+  if (maxMilEl) { maxMilEl.dataset.pct = maxCap; maxMilEl.textContent = `${maxCap}% — máximo`; }
 
   ['high','mid','entry'].forEach(g => {
     const key = 'prods' + g.charAt(0).toUpperCase() + g.slice(1);
@@ -872,11 +899,12 @@ function pctColor(pct, el) {
 }
 function fmtPct(pct) { return Math.round(pct*100) + '%'; }
 
-function calcIncentivo(base, units, target) {
+function calcIncentivo(base, units, target, maxPct) {
   if (!target) return 0;
   const pct = units / target;
   if (pct < 0.8) return 0;
-  return Math.round(base * Math.min(pct, 1.4));
+  const cap = (maxPct || 140) / 100;
+  return Math.round(base * Math.min(pct, cap));
 }
 
 function render() {
@@ -902,9 +930,9 @@ function render() {
     el.classList.toggle('reached', totalPct >= parseFloat(el.dataset.pct)/100);
   });
 
-  const iH = calcIncentivo(cfg.incHigh||0, salesState.high, tH);
-  const iM = calcIncentivo(cfg.incMid||0, salesState.mid, tM);
-  const iE = calcIncentivo(cfg.incEntry||0, salesState.entry, tE);
+  const iH = calcIncentivo(cfg.incHigh||0, salesState.high, tH, cfg.maxHigh);
+  const iM = calcIncentivo(cfg.incMid||0, salesState.mid, tM, cfg.maxMid);
+  const iE = calcIncentivo(cfg.incEntry||0, salesState.entry, tE, cfg.maxEntry);
   const bonusTotal = (cfg.bonusItems||[]).reduce((sum, item, idx) => sum + (bonusSales[idx]||0)*item.rate, 0);
   const grand = iH + iM + iE + bonusTotal;
 
