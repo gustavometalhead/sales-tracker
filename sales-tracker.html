@@ -496,6 +496,7 @@ option{background:var(--surface);}
     <div style="display:flex;align-items:center;flex-wrap:wrap;gap:10px;">
       <button class="save-btn" onclick="saveConfig()">Guardar configuración →</button>
       <span class="save-confirm" id="save-confirm">✓ Guardado</span>
+      <button class="reset-btn" onclick="resetAll()" style="margin-left:auto;border-color:rgba(255,61,113,.4);color:var(--accent2);">⚠ Reset total</button>
     </div>
     <p style="font-size:11px;color:var(--muted);font-family:'JetBrains Mono',monospace;margin-top:10px;">Los datos se guardan en tu navegador. Al guardar, el tracker se actualizará con los nuevos objetivos.</p>
 
@@ -506,17 +507,13 @@ option{background:var(--surface);}
 <script>
 // ── DEFAULT CONFIG ──
 const DEFAULT_CONFIG = {
-  zona: 'NORTE', tienda: '', codigo: '', campanya: '',
-  mes: 2, anyo: 2026,
-  tgtHigh: 2, incHigh: 200, prodsHigh: 'V5, 8 Pro, 400 Pro, Pad 9',
-  tgtMid: 30, incMid: 500, prodsMid: 'Pad 2, 400, 8 Lite, Pad 10',
-  tgtEntry: 60, incEntry: 300, prodsEntry: '400 Lite, Pad X9a, 400 Smart, Pad X8s, X5cPlus',
-  bonusItems: [
-    { name: 'M8 Lite', rate: 10 },
-    { name: 'H400', rate: 8 },
-    { name: 'M8 Pro', rate: 25 }
-  ],
-  diasLibres: [] // array de strings "YYYY-MM-DD"
+  zona: '', tienda: '', codigo: '', campanya: '',
+  mes: new Date().getMonth(), anyo: new Date().getFullYear(),
+  tgtHigh: 0, incHigh: 0, prodsHigh: '',
+  tgtMid: 0, incMid: 0, prodsMid: '',
+  tgtEntry: 0, incEntry: 0, prodsEntry: '',
+  bonusItems: [],
+  diasLibres: []
 };
 
 const MONTH_NAMES = ['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
@@ -850,6 +847,20 @@ function resetSales() {
     if (el) el.value = 0;
   });
   saveAll(); render();
+}
+
+function resetAll() {
+  if (!confirm('¿Borrar TODO — configuración, ventas y bonos? Esta acción no se puede deshacer.')) return;
+  localStorage.removeItem('teamTrackerCfg');
+  localStorage.removeItem('teamTrackerSales');
+  localStorage.removeItem('teamTrackerBonus');
+  cfg = { ...DEFAULT_CONFIG };
+  salesState = { high: 0, mid: 0, entry: 0 };
+  bonusSales = {};
+  applyConfigToTracker();
+  populateConfigForm && populateConfigForm();
+  render();
+  alert('✓ App reiniciada. Configura tu mes desde la pestaña ⚙️ Configurar mes.');
 }
 
 // ── RENDER ──
